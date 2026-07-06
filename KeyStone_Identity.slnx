@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+  </Folder>
   <Project Path="KeyStone_Identity.Core/KeyStone_Identity.Core.csproj" />
   <Project Path="KeyStone_Identity.Infrastructure/KeyStone_Identity.Infrastructure.csproj" />
   <Project Path="KeyStone_Identity/KeyStone_Identity.API.csproj" />
