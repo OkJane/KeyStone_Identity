@@ -1,0 +1,6 @@
+@KeyStone_Identity_HostAddress = http://localhost:5290
+
+GET {{KeyStone_Identity_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
