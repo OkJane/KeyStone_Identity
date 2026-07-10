@@ -1,4 +1,5 @@
-﻿using KeyStone_Identity.Core.DTOs.Response;
+﻿using KeyStone_Identity.Core.DTOs;
+using KeyStone_Identity.Core.DTOs.Response;
 using KeyStone_Identity.Core.Enums;
 using KeyStone_Identity.Core.Interfaces;
 using KeyStone_Identity.Core.Models;
@@ -8,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace KeyStone_Identity.Infrastructure.Repositories
@@ -19,7 +21,24 @@ namespace KeyStone_Identity.Infrastructure.Repositories
         {
             _settings = settings.Value;
         }
-        public JWTAuthResult GenerateToken(User user)
+
+        public string GenerateRefreshToken()
+        {
+            try
+            {
+                byte[] randomBytes = RandomNumberGenerator.GetBytes(32);
+                string base64TokenString = Convert.ToBase64String(randomBytes);
+                return base64TokenString;
+
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"{ex.Message} \n Exception: {ex.ToString()} \n Inner Exception: {ex?.InnerException}");
+            }
+        }
+
+        public async Task<JWTAuthResult> GenerateToken(User user)
         {
             try
             {
@@ -54,7 +73,9 @@ namespace KeyStone_Identity.Infrastructure.Repositories
                     Code = ResponseCodes.Successful,
                     Message = "Successful",
                     AccessToken = tokenString,
+                    RefreshToken = GenerateRefreshToken(),
                     AccessTokenExpirationDate = token.ValidTo,
+                    RefreshTokenExpirationDate = DateTime.UtcNow.AddDays(_settings.RefreshTokenExpiration),
                     AuthUser = new Core.DTOs.AuthUser
                     {
                         FirstName = user.FirstName,

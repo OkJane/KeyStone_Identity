@@ -10,8 +10,8 @@ namespace KeyStone_Identity.Core.Interfaces
         Task<bool> UserExists(string username, string emailAddress);
         Task<bool> EmailExists(string emailAddress);
         Task<User> Upsert(User user);
-        Task<User> GetUser(string username);
         Task<User> RetrieveUserByUserName(string username);
         Task<User> RetrieveUserByEmailAddress(string emailAddress);
+        Task<User> GetUserById(long userID);
     }
 }

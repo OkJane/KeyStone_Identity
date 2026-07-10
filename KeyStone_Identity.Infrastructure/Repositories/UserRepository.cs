@@ -22,19 +22,6 @@ namespace KeyStone_Identity.Infrastructure.Repositories
             return await _databaseContext.Users.Where(x => x.UserName == username || x.EmailAddress == emailAddress).AnyAsync();
         }
 
-        public async Task<User> GetUser(string username)
-        {
-            var mail = new MailAddress(username);
-            if(mail.Address == username)
-            {
-                return await RetrieveUserByEmailAddress(username);
-            }
-            else
-            {
-                return await RetrieveUserByUserName(username);
-            }
-        }
-
         public async Task<User> RetrieveUserByUserName(string username)
         {
             return await _databaseContext.Users.FirstOrDefaultAsync(x => x.UserName.Trim().ToLower() == username.Trim().ToLower());
@@ -70,6 +57,11 @@ namespace KeyStone_Identity.Infrastructure.Repositories
             {
                 throw new Exception($"{ex.Message} \n Exception: {ex.ToString()} \n Inner Exception: {ex?.InnerException}");
             }
+        }
+
+        public async Task<User> GetUserById(long userID)
+        {
+            return await _databaseContext.Users.FirstOrDefaultAsync(x => x.ID == userID);
         }
     }
 }

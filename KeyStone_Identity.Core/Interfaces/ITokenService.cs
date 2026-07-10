@@ -8,6 +8,7 @@ namespace KeyStone_Identity.Core.Interfaces
 {
     public interface ITokenService
     {
-        JWTAuthResult GenerateToken(User user);
+        Task<JWTAuthResult> GenerateToken(User user);
+        string GenerateRefreshToken();
     }
 }

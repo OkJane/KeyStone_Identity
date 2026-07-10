@@ -5,6 +5,7 @@ using KeyStone_Identity.Core.Interfaces;
 using KeyStone_Identity.Core.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Net.Mail;
 using System.Text;
 
@@ -15,11 +16,13 @@ namespace KeyStone_Identity.Core.Services
         private readonly IPasswordHasher _passwordHasher;
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
-        public AuthService(IPasswordHasher passwordHasher, IUserRepository userRepository, ITokenService tokenService)
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
+        public AuthService(IPasswordHasher passwordHasher, IUserRepository userRepository, ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository)
         {
             this._passwordHasher = passwordHasher;
             this._userRepository = userRepository;
             this._tokenService = tokenService;
+            this._refreshTokenRepository = refreshTokenRepository;
         }
 
         public async Task<UserRegistrationResponseDTO> RegisterUser(UserRegistrationDTO userDTO)
@@ -66,9 +69,17 @@ namespace KeyStone_Identity.Core.Services
                 throw new ArgumentNullException(nameof(loginDTO));
             }
             loginDTO.Username = loginDTO.Username.Trim().ToLower();
+            User? user;
 
-            var email = new MailAddress(loginDTO.Username);
-            var user = await _userRepository.GetUser(loginDTO.Username);
+            if (new EmailAddressAttribute().IsValid(loginDTO.Username))
+            {
+                user = await _userRepository.RetrieveUserByEmailAddress(loginDTO.Username);
+            }
+            else
+            {
+                user = await _userRepository.RetrieveUserByUserName(loginDTO.Username);
+            }
+
             if (user == null)
             {
                 return new JWTAuthResult
@@ -85,7 +96,53 @@ namespace KeyStone_Identity.Core.Services
                     Message = "Username or Password is incorrect",
                 };
             }
-            return _tokenService.GenerateToken(user);
+            await _refreshTokenRepository.RevokeTokens(user.ID);
+            var jwtAuthResult = await _tokenService.GenerateToken(user);
+            var refreshToken = new RefreshToken()
+            {
+                UserId = user.ID,
+                Token = jwtAuthResult.RefreshToken,
+                ExpiresAt = jwtAuthResult.RefreshTokenExpirationDate,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _refreshTokenRepository.Save(refreshToken);
+            return jwtAuthResult;
+        }
+
+        public async Task<JWTAuthResult> Refresh(string refreshTokenString)
+        {
+            try
+            {
+                var refreshToken = await _refreshTokenRepository.GetToken(refreshTokenString);
+                if (refreshToken == null || refreshToken.ExpiresAt <= DateTime.UtcNow || refreshToken.RevokedAt != null)
+                {
+                    throw new Exception("Invalid refresh token");
+                }
+                var user = await _userRepository.GetUserById(refreshToken.UserId);
+                if (user == null)
+                {
+                    throw new Exception("Invalid User");
+                }
+
+                await _refreshTokenRepository.RevokeTokens(user.ID);
+
+                var jwtAuthResult = await _tokenService.GenerateToken(user);
+                var newRefreshToken = new RefreshToken()
+                {
+                    UserId = user.ID,
+                    Token = jwtAuthResult.RefreshToken,
+                    ExpiresAt = jwtAuthResult.RefreshTokenExpirationDate,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _refreshTokenRepository.Save(newRefreshToken);
+                return jwtAuthResult;
+
+            }
+            catch(Exception ex)
+            {
+                throw new Exception($"{ex.Message} \n Exception: {ex.ToString()} \n Inner Exception: {ex?.InnerException}");
+            }
         }
     }
 }

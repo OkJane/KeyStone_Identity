@@ -10,7 +10,9 @@ namespace KeyStone_Identity.Core.DTOs.Response
         public ResponseCodes Code { get; set; }
         public string Message { get; set; }
         public string AccessToken { get; set; }
+        public string RefreshToken { get; set; }
         public DateTime AccessTokenExpirationDate { get; set; }
+        public DateTime RefreshTokenExpirationDate { get; set; }
         public AuthUser AuthUser { get; set; }
 
         public JWTAuthResult() { Code = ResponseCodes.Successful; Message = "Successful"; }

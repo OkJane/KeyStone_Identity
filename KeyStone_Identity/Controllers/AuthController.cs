@@ -41,6 +41,17 @@ namespace KeyStone_Identity.API.Controllers
             return Ok(result);
         }
 
+        [HttpPost("Refresh")]
+        public async Task<ActionResult<JWTAuthResult>> Refresh(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return BadRequest("Refresh token cannot be empty");
+            }
+            var result = await _authService.Refresh(token);
+            return Ok(result);
+        }
+
         [Authorize]
         [HttpGet("me")]
         public async Task<ActionResult> Me()
