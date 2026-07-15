@@ -1,6 +1,7 @@
 ﻿using KeyStone_Identity.Core.DTOs;
 using KeyStone_Identity.Core.DTOs.Response;
 using KeyStone_Identity.Core.Enums;
+using KeyStone_Identity.Core.Exceptions;
 using KeyStone_Identity.Core.Interfaces;
 using KeyStone_Identity.Core.Models;
 using System;
@@ -27,40 +28,35 @@ namespace KeyStone_Identity.Core.Services
 
         public async Task<UserRegistrationResponseDTO> RegisterUser(UserRegistrationDTO userDTO)
         {
-            try
+
+            if (await _userRepository.UserExists(userDTO.UserName, userDTO.EmailAddress))
             {
-                if (await _userRepository.UserExists(userDTO.UserName, userDTO.EmailAddress))
-                {
-                    throw new Exception("Username or email is already in use");
-                }
-                var passwordHash = _passwordHasher.Hash(userDTO.Password);
-                User user = new User()
-                {
-                    FirstName = userDTO.FirstName,
-                    MiddleName = userDTO.MiddleName,
-                    LastName = userDTO.LastName,
-                    DateOfBirth = userDTO.DateOfBirth,
-                    UserName = userDTO.UserName,
-                    EmailAddress = userDTO.EmailAddress,
-                    Password = passwordHash,
-                    DateCreated = DateTime.UtcNow,
-                    LastUpdatedAt = DateTime.UtcNow,
-                };
-                var response = await _userRepository.Upsert(user);
-                return new UserRegistrationResponseDTO
-                {
-                    ID = response.ID,
-                    UserName = response.UserName,
-                    FirstName = response.FirstName,
-                    LastName = response.LastName,
-                    EmailAddress = response.EmailAddress
-                };
+                throw new UserAlreadyExistsException(userDTO.UserName ?? userDTO.EmailAddress);
             }
-            catch(Exception ex)
+            var passwordHash = _passwordHasher.Hash(userDTO.Password);
+            User user = new User()
             {
-                throw new Exception($"{ex.Message} \n Exception: {ex.ToString()} \n Inner Exception: {ex?.InnerException}");
-            }
+                FirstName = userDTO.FirstName,
+                MiddleName = userDTO.MiddleName,
+                LastName = userDTO.LastName,
+                DateOfBirth = userDTO.DateOfBirth,
+                UserName = userDTO.UserName,
+                EmailAddress = userDTO.EmailAddress,
+                Password = passwordHash,
+                DateCreated = DateTime.UtcNow,
+                LastUpdatedAt = DateTime.UtcNow,
+            };
+            var response = await _userRepository.Upsert(user);
+            return new UserRegistrationResponseDTO
+            {
+                ID = response.ID,
+                UserName = response.UserName,
+                FirstName = response.FirstName,
+                LastName = response.LastName,
+                EmailAddress = response.EmailAddress
+            };
         }
+
 
         public async Task<JWTAuthResult> Login(LoginDTO loginDTO)
         {
@@ -82,19 +78,11 @@ namespace KeyStone_Identity.Core.Services
 
             if (user == null)
             {
-                return new JWTAuthResult
-                {
-                    Code = ResponseCodes.Failed,
-                    Message = "Username or Password is incorrect",
-                };
+                throw new InvalidCredentialsException();
             }
-            if(!_passwordHasher.VerifyHashedPassword(user.Password, loginDTO.Password))
+            if (!_passwordHasher.VerifyHashedPassword(user.Password, loginDTO.Password))
             {
-                return new JWTAuthResult
-                {
-                    Code = ResponseCodes.Failed,
-                    Message = "Username or Password is incorrect",
-                };
+                throw new InvalidCredentialsException();
             }
             await _refreshTokenRepository.RevokeTokens(user.ID);
             var jwtAuthResult = await _tokenService.GenerateToken(user);
@@ -111,38 +99,31 @@ namespace KeyStone_Identity.Core.Services
 
         public async Task<JWTAuthResult> Refresh(string refreshTokenString)
         {
-            try
+            var refreshToken = await _refreshTokenRepository.GetToken(refreshTokenString);
+            if (refreshToken == null || refreshToken.ExpiresAt <= DateTime.UtcNow || refreshToken.RevokedAt != null)
             {
-                var refreshToken = await _refreshTokenRepository.GetToken(refreshTokenString);
-                if (refreshToken == null || refreshToken.ExpiresAt <= DateTime.UtcNow || refreshToken.RevokedAt != null)
-                {
-                    throw new Exception("Invalid refresh token");
-                }
-                var user = await _userRepository.GetUserById(refreshToken.UserId);
-                if (user == null)
-                {
-                    throw new Exception("Invalid User");
-                }
-
-                await _refreshTokenRepository.RevokeTokens(user.ID);
-
-                var jwtAuthResult = await _tokenService.GenerateToken(user);
-                var newRefreshToken = new RefreshToken()
-                {
-                    UserId = user.ID,
-                    Token = jwtAuthResult.RefreshToken,
-                    ExpiresAt = jwtAuthResult.RefreshTokenExpirationDate,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await _refreshTokenRepository.Save(newRefreshToken);
-                return jwtAuthResult;
-
+                throw new TokenExpiredException();
             }
-            catch(Exception ex)
+            var user = await _userRepository.GetUserById(refreshToken.UserId);
+            if (user == null)
             {
-                throw new Exception($"{ex.Message} \n Exception: {ex.ToString()} \n Inner Exception: {ex?.InnerException}");
+                throw new UserNotFoundException(refreshToken.UserId.ToString());
             }
+
+            await _refreshTokenRepository.RevokeTokens(user.ID);
+
+            var jwtAuthResult = await _tokenService.GenerateToken(user);
+            var newRefreshToken = new RefreshToken()
+            {
+                UserId = user.ID,
+                Token = jwtAuthResult.RefreshToken,
+                ExpiresAt = jwtAuthResult.RefreshTokenExpirationDate,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _refreshTokenRepository.Save(newRefreshToken);
+            return jwtAuthResult;
+
         }
     }
 }

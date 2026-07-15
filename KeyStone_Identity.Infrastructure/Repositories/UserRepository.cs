@@ -14,7 +14,7 @@ namespace KeyStone_Identity.Infrastructure.Repositories
         private readonly KeyStone_Identity_DbContext _databaseContext;
         public UserRepository(KeyStone_Identity_DbContext dbContext)
         {
-         this._databaseContext = dbContext;   
+            this._databaseContext = dbContext;
         }
 
         public async Task<bool> UserExists(string username, string emailAddress)
@@ -34,30 +34,24 @@ namespace KeyStone_Identity.Infrastructure.Repositories
 
         public async Task<bool> EmailExists(string emailAddress)
         {
-            return await _databaseContext.Users.Where(x => x.EmailAddress == emailAddress ).AnyAsync();
+            return await _databaseContext.Users.Where(x => x.EmailAddress == emailAddress).AnyAsync();
         }
 
         public async Task<User> Upsert(User user)
         {
-            try
+            var existingUser = await _databaseContext.Users.Where(x => x.ID == user.ID).AnyAsync();
+            if (!existingUser)
             {
-                var existingUser = await _databaseContext.Users.Where(x => x.ID == user.ID).AnyAsync();
-                if (!existingUser)
-                {
-                    await _databaseContext.Users.AddAsync(user);
-                }
-                else
-                {
-                    _databaseContext.Users.Update(user);
-                }
-                await _databaseContext.SaveChangesAsync();
-                return user;
+                await _databaseContext.Users.AddAsync(user);
             }
-            catch (Exception ex)
+            else
             {
-                throw new Exception($"{ex.Message} \n Exception: {ex.ToString()} \n Inner Exception: {ex?.InnerException}");
+                _databaseContext.Users.Update(user);
             }
+            await _databaseContext.SaveChangesAsync();
+            return user;
         }
+
 
         public async Task<User> GetUserById(long userID)
         {

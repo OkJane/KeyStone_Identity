@@ -1,8 +1,10 @@
+using KeyStone_Identity.API.Middleware;
 using KeyStone_Identity.Core.Interfaces;
 using KeyStone_Identity.Core.Models;
 using KeyStone_Identity.Core.Services;
 using KeyStone_Identity.Infrastructure.Data;
 using KeyStone_Identity.Infrastructure.Repositories;
+using KeyStone_Identity.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -39,6 +41,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
