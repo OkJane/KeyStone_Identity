@@ -12,5 +12,6 @@ namespace KeyStone_Identity.Core.Interfaces
         Task<UserRegistrationResponseDTO> RegisterUser(UserRegistrationDTO user);
         Task<JWTAuthResult> Login(LoginDTO loginDTO);
         Task<JWTAuthResult> Refresh(string refreshTokenString);
+        Task<string> ActivateAccount(string token);
     }
 }

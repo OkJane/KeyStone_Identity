@@ -52,6 +52,17 @@ namespace KeyStone_Identity.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("Verify-Email")]
+        public async Task<ActionResult<string>> VerifyEmail(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return BadRequest("Could not verify email");
+            }
+            var result = await _authService.ActivateAccount(token);
+            return Ok(result);
+        }
+
         [Authorize]
         [HttpGet("me")]
         public async Task<ActionResult> Me()

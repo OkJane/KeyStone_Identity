@@ -4,6 +4,8 @@ using KeyStone_Identity.Core.Enums;
 using KeyStone_Identity.Core.Exceptions;
 using KeyStone_Identity.Core.Interfaces;
 using KeyStone_Identity.Core.Models;
+using KeyStone_Identity.Core.Utilities;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -18,12 +20,18 @@ namespace KeyStone_Identity.Core.Services
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
         private readonly IRefreshTokenRepository _refreshTokenRepository;
-        public AuthService(IPasswordHasher passwordHasher, IUserRepository userRepository, ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository)
+        private readonly IEmailService _emailVerificationService;
+        private readonly IActivationTokenRepository _activationTokenRepository;
+        private readonly IConfiguration _configurationManager;
+        public AuthService(IPasswordHasher passwordHasher, IUserRepository userRepository, ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository, IEmailService emailVerificationService, IActivationTokenRepository activationTokenRepository, IConfiguration configurationManager)
         {
             this._passwordHasher = passwordHasher;
             this._userRepository = userRepository;
             this._tokenService = tokenService;
             this._refreshTokenRepository = refreshTokenRepository;
+            _emailVerificationService = emailVerificationService;
+            _activationTokenRepository = activationTokenRepository;
+            _configurationManager = configurationManager;
         }
 
         public async Task<UserRegistrationResponseDTO> RegisterUser(UserRegistrationDTO userDTO)
@@ -45,8 +53,21 @@ namespace KeyStone_Identity.Core.Services
                 Password = passwordHash,
                 DateCreated = DateTime.UtcNow,
                 LastUpdatedAt = DateTime.UtcNow,
+                IsEmailVerified = false,
             };
             var response = await _userRepository.Upsert(user);
+
+            var token = _emailVerificationService.GenerateActivationToken();
+            var activationToken = new ActivationToken()
+            {
+                UserId = response.ID,
+                Token = token,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddHours(Convert.ToInt32(_configurationManager["EmailVerification:ExpirationHours"])),
+            };
+           await _activationTokenRepository.Upsert(activationToken);
+           await _emailVerificationService.SendActivationMail(userDTO.FirstName,userDTO.EmailAddress, token);
+
             return new UserRegistrationResponseDTO
             {
                 ID = response.ID,
@@ -83,6 +104,10 @@ namespace KeyStone_Identity.Core.Services
             if (!_passwordHasher.VerifyHashedPassword(user.Password, loginDTO.Password))
             {
                 throw new InvalidCredentialsException();
+            }
+            if (user.IsEmailVerified == false)
+            {
+                throw new UserNotActiveException();
             }
             await _refreshTokenRepository.RevokeTokens(user.ID);
             var jwtAuthResult = await _tokenService.GenerateToken(user);
@@ -123,6 +148,31 @@ namespace KeyStone_Identity.Core.Services
 
             await _refreshTokenRepository.Save(newRefreshToken);
             return jwtAuthResult;
+
+        }
+
+        public async Task<string> ActivateAccount(string token)
+        {
+            var activationToken = await _activationTokenRepository.Get(token);
+            if (activationToken == null || activationToken.ExpiresAt <= DateTime.UtcNow)
+            {
+                throw new TokenExpiredException();
+            }
+            if(activationToken.ActivatedAt != null)
+            {
+                return "Email has been verified";
+            }
+
+            var userID = activationToken.UserId;
+            var user = await _userRepository.GetUserById(userID);
+
+            if (user == null) throw new UserNotFoundException(userID.ToString());
+
+            user.IsEmailVerified = true;
+            activationToken.ActivatedAt = DateTime.UtcNow;
+            await _userRepository.Upsert(user);
+            await _activationTokenRepository.Upsert(activationToken);
+            return "Email verification is successful";
 
         }
     }

@@ -24,7 +24,9 @@ namespace KeyStone_Identity.Core.Models
         [Required]
         public DateTime DateCreated { get; set; }
         public DateTime LastUpdatedAt { get; set; }
+        public bool IsEmailVerified { get; set; }
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+        public ICollection<ActivationToken> ActivationToken { get; set; } = new List<ActivationToken>();
 
 
     }

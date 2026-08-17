@@ -16,6 +16,12 @@ namespace KeyStone_Identity.Core.Exceptions
         public InvalidCredentialsException() : base("Invalid username or password.") { }
     }
 
+    public class UserNotActiveException : DomainException
+    {
+        public override int StatusCode => 500;
+        public UserNotActiveException() : base("User is not active") {}
+    }
+
     public class UserNotFoundException : DomainException
     {
         public override int StatusCode => 404;

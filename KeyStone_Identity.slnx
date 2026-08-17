@@ -4,5 +4,6 @@
   </Folder>
   <Project Path="KeyStone_Identity.Core/KeyStone_Identity.Core.csproj" />
   <Project Path="KeyStone_Identity.Infrastructure/KeyStone_Identity.Infrastructure.csproj" />
+  <Project Path="KeyStone_Identity.IntegrationTests/KeyStone_Identity.IntegrationTests.csproj" Id="266211a8-5107-49d4-bba8-be7645572737" />
   <Project Path="KeyStone_Identity/KeyStone_Identity.API.csproj" />
 </Solution>
