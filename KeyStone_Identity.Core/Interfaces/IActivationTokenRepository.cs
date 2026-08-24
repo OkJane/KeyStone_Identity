@@ -9,5 +9,6 @@ namespace KeyStone_Identity.Core.Interfaces
     {
         Task<ActivationToken> Upsert(ActivationToken token);
         Task<ActivationToken> Get(string token);
+        Task<ActivationToken> GetLatestTokenByUser(long userID);
     }
 }

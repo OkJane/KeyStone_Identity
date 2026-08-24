@@ -23,7 +23,7 @@ namespace KeyStone_Identity.Infrastructure.Services
         public string GenerateActivationToken()
         {
             byte[] randomBytes = RandomNumberGenerator.GetBytes(32);
-            string base64TokenString = Convert.ToBase64String(randomBytes);
+            string base64TokenString = Convert.ToBase64String(randomBytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
             return base64TokenString;
         }
 

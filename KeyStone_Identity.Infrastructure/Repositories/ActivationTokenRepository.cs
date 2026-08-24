@@ -21,6 +21,11 @@ namespace KeyStone_Identity.Infrastructure.Repositories
             return await _DbContext.ActivationTokens.FirstOrDefaultAsync(x => x.Token == token);
         }
 
+        public async Task<ActivationToken> GetLatestTokenByUser(long userID)
+        {
+            return await _DbContext.ActivationTokens.Where(x => x.UserId == userID).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync();
+        }
+
         public async Task<ActivationToken> Upsert(ActivationToken token)
         {
             if (await Get(token.Token) != null)

@@ -13,5 +13,6 @@ namespace KeyStone_Identity.Core.Interfaces
         Task<JWTAuthResult> Login(LoginDTO loginDTO);
         Task<JWTAuthResult> Refresh(string refreshTokenString);
         Task<string> ActivateAccount(string token);
+        Task<string> ResendEmailVerification(string username);
     }
 }

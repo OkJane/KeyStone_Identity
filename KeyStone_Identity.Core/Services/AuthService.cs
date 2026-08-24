@@ -154,7 +154,7 @@ namespace KeyStone_Identity.Core.Services
         public async Task<string> ActivateAccount(string token)
         {
             var activationToken = await _activationTokenRepository.Get(token);
-            if (activationToken == null || activationToken.ExpiresAt <= DateTime.UtcNow)
+            if (activationToken == null || activationToken.ExpiresAt <= DateTime.UtcNow || activationToken.RevokedAt != null)
             {
                 throw new TokenExpiredException();
             }
@@ -173,6 +173,43 @@ namespace KeyStone_Identity.Core.Services
             await _userRepository.Upsert(user);
             await _activationTokenRepository.Upsert(activationToken);
             return "Email verification is successful";
+
+        }
+
+        public async Task<string> ResendEmailVerification(string username)
+        {
+            User? user;
+            if(new EmailAddressAttribute().IsValid(username))
+            {
+                user = await _userRepository.RetrieveUserByEmailAddress(username);
+            }
+            else
+            {
+                user = await _userRepository.RetrieveUserByUserName(username);
+            }
+
+            if(user == null) { throw new UserNotFoundException(username); }
+
+            if (user.IsEmailVerified) { return "Email address has already been verified"; }
+
+            var existingActivationToken = await _activationTokenRepository.GetLatestTokenByUser(user.ID);
+
+            existingActivationToken.RevokedAt = DateTime.UtcNow;
+            await _activationTokenRepository.Upsert(existingActivationToken);
+
+            var newToken = _emailVerificationService.GenerateActivationToken();
+            var activationToken = new ActivationToken()
+            {
+                UserId = user.ID,
+                Token = newToken,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddHours(Convert.ToInt32(_configurationManager["EmailVerification:ExpirationHours"])),
+            };
+            await _activationTokenRepository.Upsert(activationToken);
+            await _emailVerificationService.SendActivationMail(user.FirstName, user.EmailAddress, newToken);
+
+            return "Verification email has been sent successfully.";
+
 
         }
     }

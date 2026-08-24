@@ -13,6 +13,7 @@ namespace KeyStone_Identity.Core.Models
         public DateTime CreatedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
         public DateTime? ActivatedAt { get; set; }
+        public DateTime? RevokedAt { get; set; }
 
     }
 }

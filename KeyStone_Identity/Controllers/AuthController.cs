@@ -63,6 +63,17 @@ namespace KeyStone_Identity.API.Controllers
             return Ok(result);
         }
 
+        [HttpPost("Resend-Verification")]
+        public async Task<ActionResult<string>> ResendEmailVerification(string username)
+        {
+            if(string.IsNullOrEmpty(username))
+            {
+                return BadRequest("Username cannot be empty");
+            }
+            var result = await _authService.ResendEmailVerification(username);
+            return Ok(result);
+        }
+
         [Authorize]
         [HttpGet("me")]
         public async Task<ActionResult> Me()
