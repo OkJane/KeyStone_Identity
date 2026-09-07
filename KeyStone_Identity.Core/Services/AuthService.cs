@@ -81,6 +81,7 @@ namespace KeyStone_Identity.Core.Services
 
         public async Task<JWTAuthResult> Login(LoginDTO loginDTO)
         {
+            int maxLoginAttempt = Convert.ToInt32(_configurationManager["MaxLoginAttempt"]);
             if (loginDTO == null)
             {
                 throw new ArgumentNullException(nameof(loginDTO));
@@ -101,8 +102,27 @@ namespace KeyStone_Identity.Core.Services
             {
                 throw new InvalidCredentialsException();
             }
+
+            if(user.LockedUntil > DateTime.UtcNow)
+            {
+                int timeLeftTillUnlock = (int)(user.LockedUntil - DateTime.UtcNow).TotalMinutes;
+                throw new UserAccountLockedException(timeLeftTillUnlock);
+            }
+
+            if(user.LockedUntil != null && user.LockedUntil <= DateTime.UtcNow && user.FailedLoginAttempt >= maxLoginAttempt)
+            {
+                user.FailedLoginAttempt = 0;
+            }
+
             if (!_passwordHasher.VerifyHashedPassword(user.Password, loginDTO.Password))
             {
+                user.FailedLoginAttempt += 1;
+                if(user.FailedLoginAttempt >= maxLoginAttempt)
+                {
+                    user.LockedUntil = DateTime.UtcNow.AddMinutes(Convert.ToInt32(_configurationManager["AccountLockoutDurationInMinutes"]));
+                    user.FailedLoginAttempt = 0;
+                }
+                await _userRepository.Upsert(user);
                 throw new InvalidCredentialsException();
             }
             if (user.IsEmailVerified == false)
@@ -119,6 +139,10 @@ namespace KeyStone_Identity.Core.Services
                 CreatedAt = DateTime.UtcNow
             };
             await _refreshTokenRepository.Save(refreshToken);
+
+            user.FailedLoginAttempt = 0;
+            await _userRepository.Upsert(user);
+
             return jwtAuthResult;
         }
 

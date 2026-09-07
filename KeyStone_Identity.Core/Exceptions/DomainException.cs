@@ -34,4 +34,13 @@ namespace KeyStone_Identity.Core.Exceptions
         public override int StatusCode => 409;
         public UserAlreadyExistsException(string usernameOrEmail) : base($"An account with username or email {usernameOrEmail} already exists."){ }
     }
+
+    public class UserAccountLockedException : DomainException
+    {
+        public override int StatusCode => 401;
+        public UserAccountLockedException(int timeLeftTillUnlock) : base($"Your account has been temporarily locked due to multiple failed login attempts. Please try again in {timeLeftTillUnlock} minutes.")
+        {
+            
+        }
+    }
 }
