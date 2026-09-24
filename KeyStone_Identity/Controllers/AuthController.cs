@@ -5,6 +5,7 @@ using KeyStone_Identity.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace KeyStone_Identity.API.Controllers
 {
@@ -20,6 +21,7 @@ namespace KeyStone_Identity.API.Controllers
         }
 
         [HttpPost("Register")]
+        [EnableRateLimiting("per-ip")]
         public async Task<ActionResult<UserRegistrationResponseDTO>> Register(UserRegistrationDTO user)
         {
             if (user == null)
@@ -31,6 +33,7 @@ namespace KeyStone_Identity.API.Controllers
         }
 
         [HttpPost("Login")]
+        [EnableRateLimiting("per-ip")]
         public async Task<ActionResult<JWTAuthResult>> Login(LoginDTO user)
         {
             if (user == null)
@@ -64,6 +67,7 @@ namespace KeyStone_Identity.API.Controllers
         }
 
         [HttpPost("Resend-Verification")]
+        [EnableRateLimiting("per-ip")]
         public async Task<ActionResult<string>> ResendEmailVerification(string username)
         {
             if(string.IsNullOrEmpty(username))

@@ -6,6 +6,7 @@ using KeyStone_Identity.Core.Interfaces;
 using KeyStone_Identity.Core.Models;
 using KeyStone_Identity.Core.Utilities;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -23,7 +24,12 @@ namespace KeyStone_Identity.Core.Services
         private readonly IEmailService _emailVerificationService;
         private readonly IActivationTokenRepository _activationTokenRepository;
         private readonly IConfiguration _configurationManager;
-        public AuthService(IPasswordHasher passwordHasher, IUserRepository userRepository, ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository, IEmailService emailVerificationService, IActivationTokenRepository activationTokenRepository, IConfiguration configurationManager)
+        private readonly ILogger<AuthService> _logger;
+        private readonly IAuditLogService _auditLogService;
+        
+        public AuthService(IPasswordHasher passwordHasher, IUserRepository userRepository, ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository, 
+            IEmailService emailVerificationService, IActivationTokenRepository activationTokenRepository, IConfiguration configurationManager, ILogger<AuthService> logger, 
+            IAuditLogService auditLogService)
         {
             this._passwordHasher = passwordHasher;
             this._userRepository = userRepository;
@@ -32,6 +38,8 @@ namespace KeyStone_Identity.Core.Services
             _emailVerificationService = emailVerificationService;
             _activationTokenRepository = activationTokenRepository;
             _configurationManager = configurationManager;
+            _logger = logger;
+            _auditLogService = auditLogService;
         }
 
         public async Task<UserRegistrationResponseDTO> RegisterUser(UserRegistrationDTO userDTO)
@@ -39,6 +47,8 @@ namespace KeyStone_Identity.Core.Services
 
             if (await _userRepository.UserExists(userDTO.UserName, userDTO.EmailAddress))
             {
+                _logger.LogWarning("User registration failed because the user already exists. Username : {UserName} ", userDTO.UserName);
+                await _auditLogService.LogAsync(AuditEventType.UserRegistrationFailed,null,false,userDTO.UserName, $"User already exists");
                 throw new UserAlreadyExistsException(userDTO.UserName ?? userDTO.EmailAddress);
             }
             var passwordHash = _passwordHasher.Hash(userDTO.Password);
@@ -67,6 +77,9 @@ namespace KeyStone_Identity.Core.Services
             };
            await _activationTokenRepository.Upsert(activationToken);
            await _emailVerificationService.SendActivationMail(userDTO.FirstName,userDTO.EmailAddress, token);
+
+            _logger.LogInformation("New user registration {UserId}", response.ID);
+            await _auditLogService.LogAsync(AuditEventType.UserRegistered,response.ID, true,user.UserName, $"User registered successfully");
 
             return new UserRegistrationResponseDTO
             {
@@ -100,33 +113,44 @@ namespace KeyStone_Identity.Core.Services
 
             if (user == null)
             {
+                _logger.LogWarning("Failed user login due to invalid credentials. UserName - {UserName}", loginDTO.Username);
+                await _auditLogService.LogAsync(AuditEventType.LoginFailed, null, false, loginDTO.Username, FailureReason.UserNotFound.ToString());
                 throw new InvalidCredentialsException();
             }
 
-            if(user.LockedUntil > DateTime.UtcNow)
+            if(user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
             {
-                int timeLeftTillUnlock = (int)(user.LockedUntil - DateTime.UtcNow).TotalMinutes;
+                int timeLeftTillUnlock = (int)(user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes;
+                _logger.LogWarning("Failed user login due to locked account. UserId : {UserId}", user.ID);
+                await _auditLogService.LogAsync(AuditEventType.LoginFailed, user.ID, false, loginDTO.Username, FailureReason.AccountLocked.ToString());
                 throw new UserAccountLockedException(timeLeftTillUnlock);
             }
 
-            if(user.LockedUntil != null && user.LockedUntil <= DateTime.UtcNow && user.FailedLoginAttempt >= maxLoginAttempt)
+            if(user.LockedUntil.HasValue && user.LockedUntil <= DateTime.UtcNow && user.FailedLoginAttempt >= maxLoginAttempt)
             {
                 user.FailedLoginAttempt = 0;
             }
 
             if (!_passwordHasher.VerifyHashedPassword(user.Password, loginDTO.Password))
             {
+                var lockedUntil = _configurationManager["AccountLockoutDurationInMinutes"];
                 user.FailedLoginAttempt += 1;
                 if(user.FailedLoginAttempt >= maxLoginAttempt)
                 {
-                    user.LockedUntil = DateTime.UtcNow.AddMinutes(Convert.ToInt32(_configurationManager["AccountLockoutDurationInMinutes"]));
+                    user.LockedUntil = DateTime.UtcNow.AddMinutes(Convert.ToInt32(lockedUntil));
                     user.FailedLoginAttempt = 0;
+                    _logger.LogWarning("User account has been locked for {LockOutDuration} minutes. UserName - {UserName}", lockedUntil, loginDTO.Username);
+                    await _auditLogService.LogAsync(AuditEventType.AccountLocked, user.ID, false, loginDTO.Username);
                 }
                 await _userRepository.Upsert(user);
+                _logger.LogWarning("Failed user login due to invalid credentials. UserName - {UserName}", loginDTO.Username);
+                await _auditLogService.LogAsync(AuditEventType.LoginFailed, user.ID, false, loginDTO.Username, FailureReason.IncorrectPassword.ToString());
                 throw new InvalidCredentialsException();
             }
             if (user.IsEmailVerified == false)
             {
+                _logger.LogWarning("Failed user login. Email is unverified. UserId - {UserId}", user.ID);
+                await _auditLogService.LogAsync(AuditEventType.LoginFailed, user.ID, false, loginDTO.Username, FailureReason.EmailUnverified.ToString());
                 throw new UserNotActiveException();
             }
             await _refreshTokenRepository.RevokeTokens(user.ID);
@@ -143,19 +167,25 @@ namespace KeyStone_Identity.Core.Services
             user.FailedLoginAttempt = 0;
             await _userRepository.Upsert(user);
 
+            _logger.LogInformation("Successful user login. User ID : {UserId}", user.ID);
+            await _auditLogService.LogAsync(AuditEventType.LoginSuccessful, user.ID, true, loginDTO.Username);
             return jwtAuthResult;
         }
 
         public async Task<JWTAuthResult> Refresh(string refreshTokenString)
         {
             var refreshToken = await _refreshTokenRepository.GetToken(refreshTokenString);
-            if (refreshToken == null || refreshToken.ExpiresAt <= DateTime.UtcNow || refreshToken.RevokedAt != null)
+            if (refreshToken == null || refreshToken.ExpiresAt <= DateTime.UtcNow || refreshToken.RevokedAt.HasValue)
             {
+                _logger.LogWarning("Refresh token expired.");
+                await _auditLogService.LogAsync(AuditEventType.RefreshTokenRefreshFailed, null, false);
                 throw new TokenExpiredException();
             }
             var user = await _userRepository.GetUserById(refreshToken.UserId);
             if (user == null)
             {
+                _logger.LogWarning("Refresh token failed because user was not found. UserId: {UserId}", refreshToken.UserId);
+                await _auditLogService.LogAsync(AuditEventType.RefreshTokenRevoked, null, false, null, FailureReason.UserNotFound.ToString());
                 throw new UserNotFoundException(refreshToken.UserId.ToString());
             }
 
@@ -171,6 +201,8 @@ namespace KeyStone_Identity.Core.Services
             };
 
             await _refreshTokenRepository.Save(newRefreshToken);
+            _logger.LogInformation("Refresh token successfully generated. UserId : {UserId}", user.ID);
+            await _auditLogService.LogAsync(AuditEventType.RefreshTokenCreated, user.ID, true, user.UserName);
             return jwtAuthResult;
 
         }
@@ -196,6 +228,8 @@ namespace KeyStone_Identity.Core.Services
             activationToken.ActivatedAt = DateTime.UtcNow;
             await _userRepository.Upsert(user);
             await _activationTokenRepository.Upsert(activationToken);
+            _logger.LogInformation("Email successfully verified. Email : {Email}", user.EmailAddress);
+            await _auditLogService.LogAsync(AuditEventType.EmailVerified, user.ID, true, user.EmailAddress);
             return "Email verification is successful";
 
         }
@@ -231,6 +265,7 @@ namespace KeyStone_Identity.Core.Services
             };
             await _activationTokenRepository.Upsert(activationToken);
             await _emailVerificationService.SendActivationMail(user.FirstName, user.EmailAddress, newToken);
+            _logger.LogInformation("Verification email successfully resent. Email : {Email}", user.EmailAddress);
 
             return "Verification email has been sent successfully.";
 
