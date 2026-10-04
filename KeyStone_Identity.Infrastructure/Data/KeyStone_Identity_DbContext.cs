@@ -16,5 +16,7 @@ namespace KeyStone_Identity.Infrastructure.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<ActivationToken> ActivationTokens { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<UserRole> UserRoles { get; set; }
     }
 }

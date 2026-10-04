@@ -1,4 +1,6 @@
-﻿using KeyStone_Identity.Core.Enums;
+﻿using KeyStone_Identity.Core.DTOs.Request;
+using KeyStone_Identity.Core.DTOs.Response;
+using KeyStone_Identity.Core.Enums;
 using KeyStone_Identity.Core.Interfaces;
 using KeyStone_Identity.Core.Models;
 using System;
@@ -16,6 +18,12 @@ namespace KeyStone_Identity.Core.Services
             _auditLogRepository = auditLogRepository;
             _requestContext = requestContext;
         }
+
+        public async Task<List<AuditHistoryResponse>> GetAuditHistory(AuditHistoryRequest request)
+        {
+            return await _auditLogRepository.GetAuditHistory(request);
+        }
+
         public async Task LogAsync(AuditEventType eventType, long? userID, bool Success, string? identifier = null, string? decription = null)
         {
             var logEntry = new AuditLog

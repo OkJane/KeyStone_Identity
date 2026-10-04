@@ -1,4 +1,5 @@
 ﻿using KeyStone_Identity.Core.DTOs;
+using KeyStone_Identity.Core.DTOs.Request;
 using KeyStone_Identity.Core.DTOs.Response;
 using KeyStone_Identity.Core.Models;
 using System;
@@ -14,5 +15,6 @@ namespace KeyStone_Identity.Core.Interfaces
         Task<JWTAuthResult> Refresh(string refreshTokenString);
         Task<string> ActivateAccount(string token);
         Task<string> ResendEmailVerification(string username);
+        Task<List<AuditHistoryResponse>> GetAuditHistory(AuditHistoryRequest request);
     }
 }

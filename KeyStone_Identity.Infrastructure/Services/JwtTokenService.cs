@@ -29,13 +29,14 @@ namespace KeyStone_Identity.Infrastructure.Services
             return base64TokenString;
         }
 
-        public async Task<JWTAuthResult> GenerateToken(User user)
+        public async Task<JWTAuthResult> GenerateToken(User user, Role role)
         {
             //Create Claim
             var claims = new List<Claim>
             {
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub, user.ID.ToString()),
-                new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email, user.EmailAddress)
+                new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email, user.EmailAddress),
+                new Claim(ClaimTypes.Role, role.Name)
             };
 
             //Create Signing Key 

@@ -1,6 +1,9 @@
 ﻿using KeyStone_Identity.Core.DTOs;
+using KeyStone_Identity.Core.DTOs.Request;
 using KeyStone_Identity.Core.DTOs.Response;
+using KeyStone_Identity.Core.Enums;
 using KeyStone_Identity.Core.Interfaces;
+using KeyStone_Identity.Core.Models;
 using KeyStone_Identity.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -83,6 +86,14 @@ namespace KeyStone_Identity.API.Controllers
         public async Task<ActionResult> Me()
         {
             return Ok("You are authenticated");
+        }
+
+        [Authorize(Policy = Policies.CanViewAuditLogs)]
+        [HttpPost("AuditHistory")]
+        public async Task<ActionResult<List<AuditHistoryResponse>>> AuditHistory(AuditHistoryRequest request)
+        {
+            var result = await _authService.GetAuditHistory(request);
+            return Ok(result);
         }
     }
 }

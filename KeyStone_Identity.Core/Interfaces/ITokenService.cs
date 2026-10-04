@@ -8,7 +8,7 @@ namespace KeyStone_Identity.Core.Interfaces
 {
     public interface ITokenService
     {
-        Task<JWTAuthResult> GenerateToken(User user);
+        Task<JWTAuthResult> GenerateToken(User user, Role role);
         string GenerateRefreshToken();
     }
 }

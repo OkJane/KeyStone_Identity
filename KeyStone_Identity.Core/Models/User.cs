@@ -29,6 +29,7 @@ namespace KeyStone_Identity.Core.Models
         public int FailedLoginAttempt {  get; set; }
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
         public ICollection<ActivationToken> ActivationToken { get; set; } = new List<ActivationToken>();
+        public UserRole UserRole { get; set; }
 
 
     }

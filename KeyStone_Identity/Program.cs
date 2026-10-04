@@ -102,6 +102,8 @@ try
     builder.Services.AddScoped<IRequestContext, RequestContext>();
     builder.Services.AddScoped<IAuditLogService, AuditLogService>();
     builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+    builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+    builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
     builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
     builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
     var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
@@ -117,7 +119,13 @@ try
             ValidateLifetime = true,
         };
     });
-    builder.Services.AddAuthorization();
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy(Policies.CanViewAuditLogs, policy =>
+        {
+            policy.RequireRole("Admin", "Support");
+        });
+    });
 
     var app = builder.Build();
     app.UseMiddleware<ExceptionHandlingMiddleware>();

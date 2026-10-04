@@ -1,4 +1,5 @@
 ﻿using KeyStone_Identity.Core.DTOs;
+using KeyStone_Identity.Core.DTOs.Request;
 using KeyStone_Identity.Core.DTOs.Response;
 using KeyStone_Identity.Core.Enums;
 using KeyStone_Identity.Core.Exceptions;
@@ -26,10 +27,12 @@ namespace KeyStone_Identity.Core.Services
         private readonly IConfiguration _configurationManager;
         private readonly ILogger<AuthService> _logger;
         private readonly IAuditLogService _auditLogService;
+        private readonly IRoleRepository _roleRepository;
+        private readonly IUserRoleRepository _userRoleRepository;
         
         public AuthService(IPasswordHasher passwordHasher, IUserRepository userRepository, ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository, 
             IEmailService emailVerificationService, IActivationTokenRepository activationTokenRepository, IConfiguration configurationManager, ILogger<AuthService> logger, 
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository)
         {
             this._passwordHasher = passwordHasher;
             this._userRepository = userRepository;
@@ -40,6 +43,8 @@ namespace KeyStone_Identity.Core.Services
             _configurationManager = configurationManager;
             _logger = logger;
             _auditLogService = auditLogService;
+            _userRoleRepository = userRoleRepository;
+            _roleRepository = roleRepository;
         }
 
         public async Task<UserRegistrationResponseDTO> RegisterUser(UserRegistrationDTO userDTO)
@@ -66,6 +71,17 @@ namespace KeyStone_Identity.Core.Services
                 IsEmailVerified = false,
             };
             var response = await _userRepository.Upsert(user);
+
+            var role = await _roleRepository.GetRoleByRoleName(UserRoles.User.ToString());
+
+
+            _logger.LogInformation("Assigning Role {role} to {UserId}", role.Name, response.ID);
+            var userRole = new UserRole
+            {
+                RoleId = role.Id,
+                UserId = response.ID
+            };
+            await _userRoleRepository.Insert(userRole);
 
             var token = _emailVerificationService.GenerateActivationToken();
             var activationToken = new ActivationToken()
@@ -154,7 +170,9 @@ namespace KeyStone_Identity.Core.Services
                 throw new UserNotActiveException();
             }
             await _refreshTokenRepository.RevokeTokens(user.ID);
-            var jwtAuthResult = await _tokenService.GenerateToken(user);
+
+            var role = await _roleRepository.GetRoleByUserId(user.ID);
+            var jwtAuthResult = await _tokenService.GenerateToken(user, role);
             var refreshToken = new RefreshToken()
             {
                 UserId = user.ID,
@@ -191,7 +209,9 @@ namespace KeyStone_Identity.Core.Services
 
             await _refreshTokenRepository.RevokeTokens(user.ID);
 
-            var jwtAuthResult = await _tokenService.GenerateToken(user);
+            var role = await _roleRepository.GetRoleByUserId(user.ID);
+
+            var jwtAuthResult = await _tokenService.GenerateToken(user, role);
             var newRefreshToken = new RefreshToken()
             {
                 UserId = user.ID,
@@ -270,6 +290,11 @@ namespace KeyStone_Identity.Core.Services
             return "Verification email has been sent successfully.";
 
 
+        }
+
+        public async Task<List<AuditHistoryResponse>> GetAuditHistory(AuditHistoryRequest request)
+        {
+            return await _auditLogService.GetAuditHistory(request);
         }
     }
 }
