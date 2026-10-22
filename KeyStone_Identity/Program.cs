@@ -1,3 +1,4 @@
+using KeyStone_Identity.API.Authorization;
 using KeyStone_Identity.API.Context;
 using KeyStone_Identity.API.Middleware;
 using KeyStone_Identity.Core.Interfaces;
@@ -7,6 +8,7 @@ using KeyStone_Identity.Infrastructure.Data;
 using KeyStone_Identity.Infrastructure.Repositories;
 using KeyStone_Identity.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -92,6 +94,7 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
     builder.Services.AddDbContext<KeyStone_Identity_DbContext>(x => x.UseNpgsql(builder.Configuration["ConnectionStrings:DefaultConnection"]));
+    builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
     builder.Services.AddScoped<IUserRepository, UserRepository>();
     builder.Services.AddTransient<IPasswordHasher, PasswordHasher>();
     builder.Services.AddScoped<IAuthService, AuthService>();
@@ -123,7 +126,8 @@ try
     {
         options.AddPolicy(Policies.CanViewAuditLogs, policy =>
         {
-            policy.RequireRole("Admin", "Support");
+            policy.RequireAuthenticatedUser();
+            policy.AddRequirements(new PermissionRequirement("audit.read_all"));
         });
     });
 

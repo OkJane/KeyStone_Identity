@@ -78,7 +78,7 @@ namespace KeyStone_Identity.Core.Services
             _logger.LogInformation("Assigning Role {role} to {UserId}", role.Name, response.ID);
             var userRole = new UserRole
             {
-                RoleId = role.Id,
+                RoleId = role.ID,
                 UserId = response.ID
             };
             await _userRoleRepository.Insert(userRole);

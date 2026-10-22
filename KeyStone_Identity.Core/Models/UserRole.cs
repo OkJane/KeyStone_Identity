@@ -6,7 +6,7 @@ namespace KeyStone_Identity.Core.Models
 {
     public class UserRole
     {
-        public long Id { get; set; }
+        public long ID { get; set; }
         public long UserId { get; set; }
         public User User { get; set; }
         public long RoleId { get; set; }

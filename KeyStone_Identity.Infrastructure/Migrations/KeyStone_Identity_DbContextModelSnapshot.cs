@@ -93,6 +93,123 @@ namespace KeyStone_Identity.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("KeyStone_Identity.Core.Models.Permissions", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Permissions");
+
+                    b.HasData(
+                        new
+                        {
+                            ID = 1,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View user records",
+                            Name = "users.read"
+                        },
+                        new
+                        {
+                            ID = 2,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Update user details or account status",
+                            Name = "users.update"
+                        },
+                        new
+                        {
+                            ID = 3,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Lock or disable a user account",
+                            Name = "users.lock"
+                        },
+                        new
+                        {
+                            ID = 4,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Assign roles to users",
+                            Name = "users.assign_role"
+                        },
+                        new
+                        {
+                            ID = 5,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View roles",
+                            Name = "roles.read"
+                        },
+                        new
+                        {
+                            ID = 6,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create roles",
+                            Name = "roles.create"
+                        },
+                        new
+                        {
+                            ID = 7,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Update role details",
+                            Name = "roles.update"
+                        },
+                        new
+                        {
+                            ID = 8,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Delete roles",
+                            Name = "roles.delete"
+                        },
+                        new
+                        {
+                            ID = 9,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View available permissions",
+                            Name = "permissions.read"
+                        },
+                        new
+                        {
+                            ID = 10,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Grant or revoke permissions for roles",
+                            Name = "roles.assign_permission"
+                        },
+                        new
+                        {
+                            ID = 11,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View your own profile",
+                            Name = "profile.read"
+                        },
+                        new
+                        {
+                            ID = 12,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Update your own profile",
+                            Name = "profile.update"
+                        },
+                        new
+                        {
+                            ID = 13,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View all audit logs",
+                            Name = "audit.read_all"
+                        });
+                });
+
             modelBuilder.Entity("KeyStone_Identity.Core.Models.RefreshToken", b =>
                 {
                     b.Property<long>("Id")
@@ -126,19 +243,193 @@ namespace KeyStone_Identity.Infrastructure.Migrations
 
             modelBuilder.Entity("KeyStone_Identity.Core.Models.Role", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<long>("ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("ID"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.HasKey("Id");
+                    b.HasKey("ID");
 
                     b.ToTable("Roles");
+
+                    b.HasData(
+                        new
+                        {
+                            ID = 1L,
+                            Name = "Admin"
+                        },
+                        new
+                        {
+                            ID = 2L,
+                            Name = "User"
+                        },
+                        new
+                        {
+                            ID = 3L,
+                            Name = "Support"
+                        });
+                });
+
+            modelBuilder.Entity("KeyStone_Identity.Core.Models.RolePermissions", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("PermissionID")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("RoleID")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("PermissionID");
+
+                    b.HasIndex("RoleID");
+
+                    b.ToTable("RolePermissions");
+
+                    b.HasData(
+                        new
+                        {
+                            ID = 1,
+                            PermissionID = 1,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 2,
+                            PermissionID = 2,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 3,
+                            PermissionID = 3,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 4,
+                            PermissionID = 4,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 5,
+                            PermissionID = 5,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 6,
+                            PermissionID = 6,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 7,
+                            PermissionID = 7,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 8,
+                            PermissionID = 8,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 9,
+                            PermissionID = 9,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 10,
+                            PermissionID = 10,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 11,
+                            PermissionID = 11,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 12,
+                            PermissionID = 12,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 13,
+                            PermissionID = 11,
+                            RoleID = 2L
+                        },
+                        new
+                        {
+                            ID = 14,
+                            PermissionID = 12,
+                            RoleID = 2L
+                        },
+                        new
+                        {
+                            ID = 15,
+                            PermissionID = 1,
+                            RoleID = 3L
+                        },
+                        new
+                        {
+                            ID = 16,
+                            PermissionID = 3,
+                            RoleID = 3L
+                        },
+                        new
+                        {
+                            ID = 17,
+                            PermissionID = 5,
+                            RoleID = 3L
+                        },
+                        new
+                        {
+                            ID = 18,
+                            PermissionID = 9,
+                            RoleID = 3L
+                        },
+                        new
+                        {
+                            ID = 19,
+                            PermissionID = 11,
+                            RoleID = 3L
+                        },
+                        new
+                        {
+                            ID = 20,
+                            PermissionID = 12,
+                            RoleID = 3L
+                        },
+                        new
+                        {
+                            ID = 21,
+                            PermissionID = 13,
+                            RoleID = 1L
+                        },
+                        new
+                        {
+                            ID = 22,
+                            PermissionID = 13,
+                            RoleID = 3L
+                        });
                 });
 
             modelBuilder.Entity("KeyStone_Identity.Core.Models.User", b =>
@@ -198,11 +489,11 @@ namespace KeyStone_Identity.Infrastructure.Migrations
 
             modelBuilder.Entity("KeyStone_Identity.Core.Models.UserRole", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<long>("ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("ID"));
 
                     b.Property<long>("RoleId")
                         .HasColumnType("bigint");
@@ -210,12 +501,11 @@ namespace KeyStone_Identity.Infrastructure.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("Id");
+                    b.HasKey("ID");
 
                     b.HasIndex("RoleId");
 
-                    b.HasIndex("UserId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("UserRoles");
                 });
@@ -242,6 +532,25 @@ namespace KeyStone_Identity.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("KeyStone_Identity.Core.Models.RolePermissions", b =>
+                {
+                    b.HasOne("KeyStone_Identity.Core.Models.Permissions", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KeyStone_Identity.Core.Models.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("KeyStone_Identity.Core.Models.UserRole", b =>
                 {
                     b.HasOne("KeyStone_Identity.Core.Models.Role", "Role")
@@ -251,8 +560,8 @@ namespace KeyStone_Identity.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("KeyStone_Identity.Core.Models.User", "User")
-                        .WithOne("UserRole")
-                        .HasForeignKey("KeyStone_Identity.Core.Models.UserRole", "UserId")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -261,8 +570,15 @@ namespace KeyStone_Identity.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("KeyStone_Identity.Core.Models.Permissions", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
             modelBuilder.Entity("KeyStone_Identity.Core.Models.Role", b =>
                 {
+                    b.Navigation("RolePermissions");
+
                     b.Navigation("UserRoles");
                 });
 
@@ -272,8 +588,7 @@ namespace KeyStone_Identity.Infrastructure.Migrations
 
                     b.Navigation("RefreshTokens");
 
-                    b.Navigation("UserRole")
-                        .IsRequired();
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }
