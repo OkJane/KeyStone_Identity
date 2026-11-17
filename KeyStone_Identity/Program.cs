@@ -23,12 +23,13 @@ try
     Log.Information("Starting server");
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Services.AddSerilog((services, lc) => lc
-        .ReadFrom.Configuration(builder.Configuration)
-        .ReadFrom.Services(services));
+builder.Services.AddSerilog((services, lc) => lc
+.ReadFrom.Configuration(builder.Configuration)
+.ReadFrom.Services(services),
+preserveStaticLogger: true);
 
-    // Add services to the container.
-    builder.Services.AddRateLimiter(options =>
+// Add services to the container.
+builder.Services.AddRateLimiter(options =>
     {
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
@@ -169,3 +170,7 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+public partial class Program { }
+
+

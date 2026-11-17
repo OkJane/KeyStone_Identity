@@ -14,7 +14,7 @@ namespace KeyStone_Identity.IntegrationTests
 {
     public class KeyStoneApiFactory :   WebApplicationFactory<Program>
     {
-        private readonly SqliteConnection _connection = new("Filename=:memory:");
+        private readonly SqliteConnection _connection = new("Data Source=:memory:");
 
         public KeyStoneApiFactory()
         {
