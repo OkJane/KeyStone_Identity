@@ -16,5 +16,7 @@ namespace KeyStone_Identity.Core.Interfaces
         Task<string> ActivateAccount(string token);
         Task<string> ResendEmailVerification(string username);
         Task<List<AuditHistoryResponse>> GetAuditHistory(AuditHistoryRequest request);
+        Task<string> ResetPassword(string emailAddress);
+        Task<string> SetNewPassword(ResetPasswordRequest resetPasswordRequest);
     }
 }

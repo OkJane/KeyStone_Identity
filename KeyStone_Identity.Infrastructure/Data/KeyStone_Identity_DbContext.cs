@@ -92,5 +92,6 @@ namespace KeyStone_Identity.Infrastructure.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Permissions> Permissions { get; set; }
         public DbSet<RolePermissions> RolePermissions { get; set; }
+        public DbSet<Token> Tokens { get; set; }
     }
 }

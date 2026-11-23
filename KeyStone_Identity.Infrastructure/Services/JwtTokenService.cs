@@ -14,7 +14,7 @@ using System.Text;
 
 namespace KeyStone_Identity.Infrastructure.Services
 {
-    public class JwtTokenService : ITokenService
+    public class JwtTokenService : IJWTokenService
     {
         private readonly JwtSettings _settings;
         public JwtTokenService(IOptions<JwtSettings> settings)

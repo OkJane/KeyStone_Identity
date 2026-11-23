@@ -99,7 +99,7 @@ builder.Services.AddRateLimiter(options =>
     builder.Services.AddScoped<IUserRepository, UserRepository>();
     builder.Services.AddTransient<IPasswordHasher, PasswordHasher>();
     builder.Services.AddScoped<IAuthService, AuthService>();
-    builder.Services.AddScoped<ITokenService, JwtTokenService>();
+    builder.Services.AddScoped<IJWTokenService, JwtTokenService>();
     builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
     builder.Services.AddScoped<IEmailService, EmailService>();
     builder.Services.AddScoped<IActivationTokenRepository, ActivationTokenRepository>();
@@ -108,6 +108,9 @@ builder.Services.AddRateLimiter(options =>
     builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
     builder.Services.AddScoped<IRoleRepository, RoleRepository>();
     builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+    builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+    builder.Services.AddScoped<ITokenRepository, TokenRepository>();
+    builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
     builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
     var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();

@@ -95,5 +95,21 @@ namespace KeyStone_Identity.API.Controllers
             var result = await _authService.GetAuditHistory(request);
             return Ok(result);
         }
+
+        [EnableRateLimiting("per-ip")]
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword([FromBody] ForgotPasswordRequest request)
+        {
+            var result = await _authService.ResetPassword(request.EmailAddress);
+            return Ok(result);
+        }
+
+        [EnableRateLimiting("per-ip")]
+        [HttpPost("SetNewPassword")]
+        public async Task<IActionResult> SetNewPassword([FromBody] ResetPasswordRequest resetPasswordRequest)
+        {
+            var result = await _authService.SetNewPassword(resetPasswordRequest);
+            return Ok(result);
+        }
     }
 }
